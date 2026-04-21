@@ -18,11 +18,18 @@ Read data/MC files, write plotting scripts, save to
 `phase5_documentation/outputs/figures/`. Also symlink existing phase figures:
 
 ```bash
+# Figures from both chains. Phase 3 onwards uses chain-stamped
+# subdirectories (figures/delphes/, figures/cld/) to avoid collisions.
 ln -sf ../../../phase2_exploration/outputs/figures/*.pdf phase5_documentation/outputs/figures/
-ln -sf ../../../phase3_selection/outputs/figures/*.pdf phase5_documentation/outputs/figures/
-ln -sf ../../../phase4_inference/4a_expected/outputs/figures/*.pdf phase5_documentation/outputs/figures/
-ln -sf ../../../phase4_inference/4b_partial/outputs/figures/*.pdf phase5_documentation/outputs/figures/
-ln -sf ../../../phase4_inference/4c_observed/outputs/figures/*.pdf phase5_documentation/outputs/figures/
+for chain in delphes cld; do
+  mkdir -p phase5_documentation/outputs/figures/$chain
+  ln -sf ../../../../phase3_selection/outputs/figures/$chain/*.pdf       phase5_documentation/outputs/figures/$chain/
+  ln -sf ../../../../phase4_inference/4a_expected/outputs/figures/$chain/*.pdf phase5_documentation/outputs/figures/$chain/
+  ln -sf ../../../../phase4_inference/4b_toys/outputs/figures/$chain/*.pdf     phase5_documentation/outputs/figures/$chain/
+  ln -sf ../../../../phase4_inference/4c_fullstats/outputs/figures/$chain/*.pdf phase5_documentation/outputs/figures/$chain/
+done
+# Dual-chain comparison figures from Phase 4c
+ln -sf ../../../phase4_inference/4c_fullstats/outputs/figures/comparison/*.pdf phase5_documentation/outputs/figures/
 ```
 
 The AN typically needs ~30+ figures. Phases 2-4 produce some, but the AN
@@ -106,6 +113,20 @@ pages is Category A.
    knowledge. If no published measurement exists for the exact
    observable, compare to the closest available published result and
    explain the differences.
+
+6. **Dual-chain comparison chapter (mandatory).** The Phase 5 AN is a
+   single document covering both Delphes and CLD results. It must
+   include a dedicated "Dual-chain comparison" chapter that inherits
+   the Phase 4c `COMPARISON_dual_sim.md` artifact — fitted-parameter
+   table with pull, side-by-side systematic budget, covariance
+   comparison, representative distribution overlays, and the physics
+   verdict. An AN without this chapter is Category A. If one chain
+   was formally approved as unavailable at Phase 1 (§4.3.6 of
+   `methodology/04-staged-validation.md`), the chapter is replaced by
+   a clearly-labelled "Single-chain disclaimer" section naming the
+   missing chain, the trigger for completing the comparison, and the
+   responsible follow-up. See `methodology/03-phases.md` → Phase 5
+   "Dual-chain comparison chapter."
 
 6. **Figure-scrolling test.** Scroll through the figure sequence in the
    AN without reading any text. Can you follow the complete physics

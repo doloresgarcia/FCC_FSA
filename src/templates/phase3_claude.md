@@ -11,10 +11,27 @@ what this phase must deliver.
 you will write, what selection you will implement, what figures you will
 produce, what the artifact structure will be. Execute after the plan is set.
 
-## Output artifact
+## Output artifacts (dual-chain)
 
-`outputs/SELECTION.md` — final object definitions, event selection with
-optimization, cutflow table, and technique-specific deliverables.
+Phase 3 runs on both simulation chains. Produce chain-stamped artifacts:
+
+- `outputs/SELECTION_delphes.md` — selection on Delphes fast sim
+- `outputs/SELECTION_cld.md`     — selection on CLD full sim
+
+Each artifact covers: final object definitions, event selection with
+optimization, cutflow table, and technique-specific deliverables — for
+that chain. Both artifacts are reviewed at the 1-bot tier.
+
+The physics graph (`build_graph`) is shared via the aliasing shim in
+`conventions/fcc_ee.md` ("Collection aliasing"). Code duplication
+between the two chain's executions is a review finding — the only
+difference between run_fastsim.py and run_fullsim.py should be
+`inputDir` / `prodTag` / `sim_chain`.
+
+If the secondary chain's samples are not yet produced, flag this in the
+primary-chain artifact's "Open issues" section with a named production
+trigger; the secondary-chain Phase 3 artifact is then a scheduled
+deliverable recorded in COMMITMENTS.md, not a silent omission.
 
 ## Applicable conventions
 

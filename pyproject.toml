@@ -1,7 +1,7 @@
 [project]
-name = "slopspec"
+name = "fcc-fsa"
 version = "0.1.0"
-description = "slopspec — LLM-driven HEP analysis specification."
+description = "FCC_FSA — LLM-driven FCC-ee simulation analysis framework (JFC retarget)."
 requires-python = ">=3.11"
 
 [tool.pixi.workspace]

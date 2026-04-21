@@ -99,7 +99,7 @@ variables. Each session starts from artifacts + instructions.
 | Phase 1 executor | §1, §2, §3 (Phase 1), §5, §7 |
 | Phase 2 executor | §3 (Phase 2), §5, §7, Appendix D |
 | Phase 3 executor | §3 (Phase 3), §5, §7, §11, Appendix D |
-| Phase 4 executor | §3 (Phase 4), §4, §5, §7, §11, Appendix D |
+| Phase 4 executor | §3 (Phase 4), §4 (staged validation), §5, §7, §11, Appendix D, `conventions/fcc_ee.md` |
 | Phase 5 executor | §3 (Phase 5), §5, Appendix D |
 | 4/5-bot reviewer | §6, applicable phase from §3, conventions, checklist |
 | 1-bot reviewer | §6, applicable phase from §3, conventions |
@@ -122,11 +122,57 @@ artifact and stop cleanly. Never skip an artifact to "save context."
   consolidated before review.
 - **Across phases:** sequential (Phase N reads Phase N-1 artifact).
 - **Per-channel:** channel-specific work in Phases 2-3 can run in parallel.
+- **Per-chain (dual-sim):** Delphes and CLD executions at Phases 3 and 4
+  can run in parallel sub-agents when both chain's samples are ready.
 
 **Sub-delegation within a phase:** Delegate compute-heavy tasks (MVA
 training, systematic evaluation, plot generation, closure tests) to
 sub-agents. The executor coordinates and integrates. Sub-agents handle
 execution; the executor retains judgment (which backgrounds, whether
 closure tests pass).
+
+---
+
+### 3a.6 Dual-chain orchestration
+
+**Every analysis runs on both chains.** §4.3 defines the full protocol;
+this section covers the orchestrator's responsibilities.
+
+**Primary vs. secondary chain.** The Phase 1 strategy names the primary
+chain (typically Delphes — centrally produced winter2023 IDEA samples)
+and the secondary chain (typically CLD — user-produced). The orchestrator
+records this designation in the progress task list and enforces it
+through the phase flow.
+
+**Scheduling.** Two valid modes:
+
+- **Serial (default when secondary samples are not ready at kickoff):**
+  primary chain through Phases 1–5, then secondary chain re-runs Phases
+  3–4 and the comparison artifact is folded into the Phase 5 AN via a
+  new AN version (non-destructive update with a Change Log entry — this
+  is a scheduled regression, not a process failure).
+- **Parallel (default when both chain's samples are ready at kickoff):**
+  each phase executes on both chains (parallel sub-agents), and the
+  review panel covers both chains' artifacts in the same pass.
+
+**Chain-stamped artifacts.** From Phase 3 onwards every executor
+produces chain-stamped outputs. The orchestrator must spawn the executor
+with the chain argument (`sim_chain="fast"` or `"full"`) and instruct it
+to write to the chain-stamped filename (`SELECTION_delphes.md`,
+`INFERENCE_FULLSTATS_cld.md`, …). The Phase 4c executor additionally
+produces `COMPARISON_dual_sim.md`.
+
+**Reviews cover both chains.** The orchestrator spawns reviewers with
+both chains' artifacts in their context. A 1-bot or 4-bot review that
+inspects only one chain's artifact is a process failure. When iteration
+is needed, both chains' fixes are scoped into the same re-review pass
+unless the issue is genuinely chain-specific.
+
+**Binding commitment.** Dual-chain execution is a Phase 1 binding
+commitment tracked in `COMMITMENTS.md`. `COMPARISON_dual_sim.md` at 4c
+and the dual-chain chapter at Phase 5 are binding deliverables; dropping
+either is Category A. The only acceptable single-chain outcome is a
+Phase-1-approved constraint [A] with a named trigger for completing the
+comparison (§4.3.6).
 
 ---

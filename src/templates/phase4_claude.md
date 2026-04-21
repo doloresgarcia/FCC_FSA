@@ -2,7 +2,8 @@
 
 > Read `methodology/03-phases.md` → "Phase 4" for full requirements.
 > Read `methodology/appendix-plotting.md` for figure standards.
-> Read `methodology/04-blinding.md` for the blinding protocol.
+> Read `methodology/04-staged-validation.md` for the MC-only staging protocol.
+> Read `conventions/fcc_ee.md` for FCC-ee sample and statistical conventions.
 
 You are building the statistical model and computing results for a
 **{{analysis_type}}** analysis.
@@ -13,15 +14,28 @@ the artifact structure will be. Execute after the plan is set.
 
 ## Output artifacts and flow
 
-**Both measurements and searches follow the same 4a → 4b → 4c structure:**
-- **4a:** Statistical analysis — systematics, expected results. Executor
-  (stats) → note writer (AN v1 with expected results) → typesetter
-  (compile). Review includes BibTeX validation.
-- **4b:** 10% data validation. Compare to expected. Executor (stats) →
-  note writer (update AN with 10% results) → typesetter (compile for
-  human gate). Review includes BibTeX validation. Human gate after review.
-- **4c:** Full data. Compare to 10% and expected. Executor (stats) →
-  note writer (update AN with full results).
+**Both measurements and searches follow the same 4a → 4b → 4c structure.
+All inputs are simulation — Delphes or CLD EDM4hep samples. There is no
+real data; "pseudo-data" below means Asimov or Poisson-toy pseudo-data
+generated from the nominal MC model.**
+
+- **4a:** Statistical analysis — systematics, expected results on
+  Asimov pseudo-data at full design luminosity. Executor (stats) → note
+  writer (AN v1 with expected results) → typesetter (compile). Review
+  includes BibTeX validation.
+- **4b:** Toy-MC coverage scan. Generate ≥500 Poisson toys from the
+  nominal model at full luminosity, refit each, produce pull and
+  coverage plots. Executor (stats) → note writer (update AN with toy
+  results) → typesetter (compile for human gate). Review includes
+  BibTeX validation. Human gate after review.
+- **4c:** Full-statistics expected result + final covariance for
+  each chain. Compare to both the 4b toy distribution and the 4a
+  Asimov. After both chain's fits are complete, produce
+  `COMPARISON_dual_sim.md` comparing the two chains at the level of
+  the final fitted parameter, per-source systematic budget, and
+  covariance matrix (see "Dual-chain comparison" below). Executor
+  (stats) → note writer (update AN with final numbers for both chains
+  + dual-chain chapter inheriting COMPARISON_dual_sim.md).
 
 **Note writer figure composition annotations.** When the note writer
 references groups of related figures (per-variable data/MC, per-systematic
@@ -42,9 +56,16 @@ the final Phase 5 PDF.
 
 | Sub-phase | Artifact | Review |
 |-----------|----------|--------|
-| 4a | `outputs/INFERENCE_EXPECTED.md` + `outputs/ANALYSIS_NOTE_4a_v1.{md,tex,pdf}` | 4-bot+bib |
-| 4b | `outputs/INFERENCE_PARTIAL.md` + `outputs/ANALYSIS_NOTE_4b_v1.{md,tex,pdf}` | 4-bot+bib → human gate |
-| 4c | `outputs/INFERENCE_OBSERVED.md` + `outputs/ANALYSIS_NOTE_4c_v1.{md,tex,pdf}` | 1-bot |
+| 4a | `INFERENCE_EXPECTED_delphes.md` AND `INFERENCE_EXPECTED_cld.md` + `ANALYSIS_NOTE_4a_v1.{md,tex,pdf}` | 4-bot+bib |
+| 4b | `INFERENCE_TOYS_delphes.md` AND `INFERENCE_TOYS_cld.md` + `ANALYSIS_NOTE_4b_v1.{md,tex,pdf}` | 4-bot+bib → human gate |
+| 4c | `INFERENCE_FULLSTATS_delphes.md` AND `INFERENCE_FULLSTATS_cld.md` + `COMPARISON_dual_sim.md` + `ANALYSIS_NOTE_4c_v1.{md,tex,pdf}` | 1-bot |
+
+**Dual-chain execution (mandatory).** Phase 4 runs on both chains.
+Every chain-stamped artifact receives the same review tier as the
+primary chain — skipping reviews on the secondary chain is a process
+failure. See `methodology/04-staged-validation.md` §4.3 for the full
+protocol (primary/secondary designation, scheduling, comparison
+artifact contents).
 
 ## Physics correctness gates (mandatory self-checks before review)
 
@@ -81,11 +102,39 @@ Category A at review — verify before submitting.
    can distinguish predictions differing by ~8% at 2σ." See
    `methodology/analysis-note.md` → Interpretive quality standards.
 
+## Dual-chain comparison (Phase 4c, mandatory)
+
+After both Delphes and CLD full-stats fits are complete, produce
+`outputs/COMPARISON_dual_sim.md`. Mandatory contents
+(§4.3.5 of `methodology/04-staged-validation.md`):
+
+1. **Fitted-parameter table** — Delphes central value ± uncertainty
+   vs. CLD central value ± uncertainty, difference, and pull.
+2. **Side-by-side systematic budget** — per-source relative uncertainty
+   on the fitted parameter for each chain, with a delta column. Flag
+   any source that is dominant on one chain but subdominant on the
+   other.
+3. **Covariance matrix comparison** (unfolded / differential only) —
+   bin-to-bin covariance from each chain + per-element relative
+   difference or Frobenius-norm distance.
+4. **Distribution overlays with ratio panels** — the observable and
+   every MVA input / correction input, overlaid between chains.
+5. **Verdict** — chi² or combined-pull summary, physical interpretation
+   (physically-expected detector-simulation effect vs. chain-specific
+   analysis issue).
+
+A dual-chain disagreement **larger than the assigned detector-simulation
+systematic** is a Phase 3 regression trigger. Do not fold it into a
+flat systematic.
+
+The comparison artifact is reviewed alongside the chain-stamped 4c
+artifacts (1-bot) and inherited by the Phase 5 AN as a chapter.
+
 ## Human gate (after 4b review)
 
 After the 4b review panel returns PASS, present the **compiled PDF** and
-the unblinding checklist to the human. Do NOT proceed to 4c without
-explicit human approval.
+the toy-MC coverage checklist (from `methodology/04-staged-validation.md`
+§4.2) to the human. Do NOT proceed to 4c without explicit human approval.
 
 The human may:
 - **APPROVE** — proceed to 4c (full data)
@@ -103,7 +152,8 @@ cohesive narrative. Re-present the updated PDF to the human.
 
 - Phase requirements: `methodology/03-phases.md` → Phase 4
 - Technique-specific requirements: `methodology/03-phases.md` → Phase 4 sub-phase descriptions
-- Blinding: `methodology/04-blinding.md`
+- Staged validation (MC-only): `methodology/04-staged-validation.md`
+- FCC-ee / EDM4hep / FCCAnalyses domain: `conventions/fcc_ee.md`
 - Review protocol: `methodology/06-review.md` → §6.2 (4-bot / 1-bot), §6.4
 - Goodness-of-fit: `methodology/03-phases.md` → Phase 4 GoF requirements
 - Plotting: `methodology/appendix-plotting.md`
@@ -150,21 +200,17 @@ These are the critical items for Phase 4. See
   pyhf/HistFactory). For pure counting extractions without a binned fit,
   use chi2 across bins or subperiods instead. chi2/ndf ~ 1 is good; >>1
   indicates mismodeling; <<1 indicates overestimated uncertainties.
-- **Expected results on Asimov/MC only.** Phase 4a results must come from
-  pseudo-data — never real data.
-- **MC coverage must match data.** Do not derive MC-dependent quantities
-  (efficiencies, corrections, scale factors) for data-taking periods that
-  lack corresponding MC simulation. If MC covers only one period, either
-  restrict the measurement to that period or justify (with evidence) that
-  the MC is applicable to other periods. Silently extrapolating MC-derived
-  corrections to uncovered periods underestimates uncertainties.
-
-  **General principle:** when any MC-derived quantity is applied beyond
-  the conditions it was derived from (different periods, different
-  detector configurations, different kinematic regions), the
-  uncertainties on the result must reflect the extrapolation. A
-  per-subset consistency plot where all points carry identical
-  uncertainties despite unequal MC coverage is a red flag.
+- **All Phase 4a results are on Asimov pseudo-data.** There is no real
+  data in this framework. Phase 4b is the toy-MC coverage scan, Phase 4c
+  is the full-statistics expected result at design luminosity.
+- **MC sample applicability.** Do not apply MC-derived quantities
+  (efficiencies, corrections) beyond the kinematic or detector configuration
+  they were derived from. If a correction was derived on Delphes and is
+  then applied to CLD samples (or vice versa), the uncertainty on the
+  result must reflect this extrapolation. The natural way to bound the
+  effect is the dual-sim overlay (§4.3) — if Delphes and CLD agree on
+  the corrected observable, the correction is transferable; if they
+  disagree, the spread is the systematic.
 - **Covariance matrix (measurements).** Full bin-to-bin covariance
   (statistical + each systematic + total) in the artifact and as
   machine-readable files.

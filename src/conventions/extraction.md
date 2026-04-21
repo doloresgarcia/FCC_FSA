@@ -24,15 +24,17 @@ If the analysis uses a binned likelihood fit to a discriminant shape, the
 
 ## Standard configuration
 
-- **MC pseudo-data for Phase 4a.** The expected result must be computed on
-  MC-generated pseudo-data counts, not on real data. Generate counts from
-  MC truth parameters using the extraction formula (e.g., for R_b:
-  N_t = 2 * N_had * [eps_b * R_b + eps_nonb * (1 - R_b)]). Optionally
-  Poisson-fluctuate to assess statistical reach.
-- **Fixed random seed.** All pseudo-data generation and 10% subsample
-  selection use documented fixed seeds for reproducibility.
-- **Per-subperiod granularity.** When multiple data-taking periods exist,
-  track the result per period as a standard cross-check.
+- **Asimov pseudo-data for Phase 4a.** The expected result must be
+  computed on Asimov pseudo-data generated from the nominal MC model,
+  with bin contents equal to the exact expected values (no fluctuations).
+  For closed-form extractions, set the inputs to their MC-truth values
+  and evaluate the formula. This is the baseline for the toy scan in
+  Phase 4b.
+- **Fixed random seed.** All toy generation and subsample selection
+  use documented fixed seeds for reproducibility.
+- **Per-sample-subset granularity.** When multiple MC sub-samples exist
+  (generator variants, detector configurations), track the result per
+  subset as a standard cross-check.
 - **Counting vs. likelihood extraction.** Pure counting (closed-form
   formula applied to yields) is appropriate when the extraction formula is
   simple and the systematic treatment is transparent. Likelihood extraction
@@ -50,25 +52,22 @@ If the analysis uses a binned likelihood fit to a discriminant shape, the
   statistics per bin. As a rule of thumb, each efficiency bin should contain
   at least ~100 MC events; below this, statistical noise in the correction
   dominates. Document the binning choice and its motivation.
-- **Data-derived calibration (scale factors).** When the extraction depends
-  on MC-derived efficiencies (e.g., tagging efficiency), derive data/MC
-  scale factors from a control sample using tag-and-probe or similar
-  methods. Apply these scale factors to the MC before extraction. If
-  data-derived calibration is not feasible, assign the full data/MC
-  difference as a systematic — but document why calibration was not done.
-  Relying on uncalibrated MC efficiencies without justification is
-  Category A.
+- **Cross-chain calibration (scale factors).** When the extraction depends
+  on MC-derived efficiencies (e.g., tagging efficiency) and both Delphes
+  and CLD samples are available, derive the fast-sim-to-full-sim scale
+  factor per kinematic bin and apply it to the Delphes efficiencies
+  before extraction. If only one chain is available, assign a systematic
+  covering the expected fast/full difference from published FCC-ee
+  detector-simulation comparisons.
 
-  **Calibration independence is mandatory.** Each calibration must come
-  from an observable that is independent of the primary result. For
-  example, tagging efficiency can be calibrated from the d0 resolution
-  (measured in a lifetime-independent way), or from a tag-and-probe
-  method on a known sample. Deriving the correction by assuming the
-  primary result equals a reference value (back-substitution) is a
-  diagnostic, not a calibration — see `methodology/06-review.md` §6.8
-  Tier 2 for the full independence classification. When a parameter
-  cannot be independently calibrated, use the MC value with an inflated
-  systematic covering the data-implied range.
+  **Calibration independence is mandatory.** Each scale factor must come
+  from an observable independent of the primary result. For example,
+  tagging efficiency can be calibrated from the impact parameter
+  resolution, or from a tag-and-probe method on a known sample. Deriving
+  the correction by assuming the primary result equals a reference value
+  (back-substitution) is a diagnostic, not a calibration — see
+  `methodology/06-review.md` §6.8 Tier 2 for the full independence
+  classification.
 
 ---
 
@@ -145,27 +144,29 @@ If the analysis uses a binned likelihood fit to a discriminant shape, the
    indicates time-dependent effects (detector aging, calibration drift) not
    captured by the MC model.
 
-5. **10% diagnostic sensitivity (Phase 4b).** The 10% data validation must
-   include at least one diagnostic genuinely sensitive to data/MC
-   differences — not just a comparison of the extracted quantity (which is
-   dominated by correlated systematics and insensitive to subsample size).
-   Required: data-derived tag rates or double-tag fractions compared to MC,
-   and self-calibrated parameter comparison between 10% data and MC.
+5. **Toy-scan diagnostic sensitivity (Phase 4b).** The Phase 4b toy
+   scan must include at least one diagnostic genuinely sensitive to
+   model mis-specification — not just the distribution of the extracted
+   quantity (which is dominated by correlated systematics and largely
+   insensitive to toy-to-toy differences). Required: the distribution
+   of intermediate tag rates, double-tag fractions, or per-category
+   yields across toys, compared to the Asimov expectation from 4a.
 
 ---
 
 ## Pitfalls
 
-- **Running on real data in Phase 4a.** The entire point of the 4a → 4b →
-  4c staged validation is that 4a uses MC-only pseudo-data. Computing the
-  extraction on real data counts in 4a makes 4a and 4c identical and
-  defeats the staged validation protocol.
+- **Running 4a on the same sample that generates the toys.** 4a uses
+  Asimov pseudo-data (exact expected bin contents). If the executor
+  generates fluctuated toys in 4a instead, there is nothing left to
+  measure in 4b — and the toy scan loses its diagnostic power. Asimov
+  in 4a, toys in 4b.
 
-- **Insensitive 10% test.** Comparing only the final extracted quantity on
-  10% data vs. MC tells you almost nothing — the statistical uncertainty
-  dominates and hides real data/MC differences. The 10% test must include
-  intermediate diagnostics (tag rates, efficiency comparisons, per-period
-  results) that are sensitive at the 10% statistics level.
+- **Insensitive toy scan.** Comparing only the distribution of the final
+  extracted quantity across toys tells you little — correlated
+  systematics dominate. The toy scan must include intermediate
+  diagnostics (tag rates, efficiency distributions, per-subset results)
+  that can move toy-to-toy independently of the nuisance structure.
 
 - **Missing independent MC for closure.** The closure test must use an MC
   sample statistically independent from the one used to derive corrections
@@ -213,41 +214,29 @@ If the analysis uses a binned likelihood fit to a discriminant shape, the
   in an R_b measurement). Setting these to nominal MC values without
   uncertainty propagation underestimates the systematic error.
 
-- **Circular luminosity derivation is Category A when published
-  luminosities exist.** When the analysis derives luminosities from
-  the data using theoretical cross-sections (L = N / (epsilon *
-  sigma_theory)), the lineshape or rate fit recovers the input
-  parameters by construction — chi^2 = 0 algebraically, and ALL
-  fitted parameters (not just the normalization) equal the theory
-  input. This is not a measurement; it is an identity.
+- **Circular luminosity / cross-section inputs are Category A.** For
+  FCC-ee projection studies the integrated luminosity is a design
+  input (e.g. 10.8 ab⁻¹ at 240 GeV, 3.12 ab⁻¹ at 365 GeV). It MUST
+  come from the cited FCC-ee feasibility study, not be derived from
+  the simulated event count and assumed cross sections. If the
+  analysis back-calculates luminosity from N_events / (σ × ε), the
+  cross-section fit recovers σ trivially — this is an identity, not
+  a measurement.
 
-  If published luminosity values exist for the dataset — from a
-  dedicated luminometer (SICAL, LCAL, or equivalent), from a cited
-  paper's data table, or from HEPData — they MUST be used.
-  Acknowledging the circularity and reframing as a "self-consistency
-  check" is necessary but NOT SUFFICIENT when published values are
-  available. The executor must exhaust all options for obtaining
-  independent luminosity before falling back to derivation:
-  (a) search the cited reference paper for per-energy-point luminosity
-  tables, (b) check HEPData for the published dataset, (c) check
-  the LEP EWWG combination inputs. Only after demonstrating that
-  no published per-point luminosities exist for this specific dataset
-  may luminosity be derived from event counts — and in that case
-  the results section must use the heading "Self-consistency check"
-  and the abstract must not present the fitted values as measurements.
-
-  Deriving luminosity from data when a luminosity table exists in a
-  paper cited by the strategy is Category A — it is a silent violation
-  of a binding commitment, not a legitimate methodology choice.
-- **Inflated uncertainties from MC-evaluated systematics.** When a
-  systematic is evaluated by scanning a parameter (e.g., kappa, binning
-  choice, alternative method) on MC pseudo-data and then applied to the
-  full data result, verify that the data-evaluated spread is consistent
-  with the MC spread. If the data spread is significantly smaller (>2x),
-  the MC evaluation may be inflated — the MC configuration space may
-  include unphysical or irrelevant variations that the data naturally
-  constrains. Use the data evaluation as the primary systematic, with
-  the MC evaluation as an upper bound only if the data scan has too few
+  Similarly, process cross sections feeding the `processList` / procDict
+  must come from the matching FCCAnalyses samplesDict (which traces back
+  to the generator). Do not hand-tune cross sections to improve agreement
+  between two samples or between two sim chains.
+- **Inflated uncertainties from coarse-scan systematics.** When a
+  systematic is evaluated by scanning a parameter (kappa, binning
+  choice, alternative method) on a reduced MC sample and then applied
+  to the full-statistics result, verify that the full-stats evaluation
+  is consistent with the coarse-scan spread. If the full-stats spread
+  is significantly smaller (>2x), the coarse evaluation may be inflated
+  — the coarse configuration space may include unphysical or irrelevant
+  variations that the full-stats fit naturally constrains. Use the
+  full-stats evaluation as the primary systematic, with the coarse
+  evaluation as an upper bound only if the full-stats scan has too few
   points to be reliable. Inflated systematics are not "conservative" —
   they obscure the measurement's true sensitivity and make validation
   checks (pull < 2σ) meaningless. A measurement where the dominant
@@ -283,3 +272,11 @@ If the analysis uses a binned likelihood fit to a discriminant shape, the
 - PDG review: "Electroweak model and constraints on new physics" in the
   Review of Particle Physics. Current world averages for R_b, R_c, and
   correlation matrices between electroweak observables.
+- "Model-independent ZH production cross section at FCC-ee",
+  arXiv:2512.21290. Reference analysis for ZH recoil extractions at
+  FCC-ee at √s = 240 GeV and 365 GeV (μμ, ee, hadronic channels).
+- FCCAnalyses ZH recoil example:
+  `examples/FCCee/higgs/mH-recoil/histmaker_mumu.py` at
+  <https://github.com/HEP-FCC/FCCAnalyses>.
+- FCCPhysics ZH leptonic reference (Jeyserma): `analyses/h_zh/h_zh_leptonic.py`
+  at <https://github.com/jeyserma/FCCPhysics>.

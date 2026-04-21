@@ -121,7 +121,7 @@ OVERLAP (Category A if present):
       or other plot content. Check the actual rendered image, not just
       the loc= parameter.
 - [ ] No text-text collision — experiment label components (e.g.,
-      "ALEPH" + "Simulation" + rlabel) do not run together or overlap.
+      "FCC-ee" + "Delphes Simulation" + rlabel) do not run together or overlap.
 - [ ] Annotations and labels do not collide with each other.
 
 LABEL QUALITY (Category A if violated):
@@ -134,7 +134,7 @@ LAYOUT (Category A — all layout issues affect readability):
 - [ ] Subplot layout suits the content. Horizontal bar charts with long
       labels crammed into narrow panels → flag for redesign.
 - [ ] Ratio plots: experiment label appears on MAIN panel only.
-      If the ALEPH/CMS label appears on the ratio panel → Category A.
+      If the FCC-ee label appears on the ratio panel → Category A.
 - [ ] Axis ranges appropriate — data fills the plot area, no excessive
       whitespace, no clipped content.
 - [ ] Ratio panel has no visible gap from main panel.

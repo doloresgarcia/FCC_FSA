@@ -45,24 +45,25 @@ fig, ax = plt.subplots(figsize=(10, 10))
 # For data/MC comparisons: use mh.histplot on subaxes with ratio panel
 
 # --- Labels (required on EVERY independent axes, NOT on ratio panels) ---
-# For open/archived data (this project), use "Open Data" / "Open Simulation":
-#   Data plots:  exp="ALEPH", data=True,  llabel="Open Data"
-#   MC plots:    exp="ALEPH", data=True,  llabel="Open Simulation"
-# NOTE: always set data=True and use llabel to control the left label.
-# Setting data=False auto-adds "Simulation" which stacks with llabel.
+# FCC-ee simulation analyses always use exp="FCC-ee" and set llabel to
+# the simulation chain. Never use com= (CMS stylesheet prints TeV, which
+# is wrong for FCC-ee); always set rlabel= as a string.
+#
+#   Delphes fast sim:   llabel="Delphes Simulation"
+#   CLD full sim:       llabel="CLD Simulation"
+#   Dual-sim overlay:   llabel="Delphes vs CLD"
+#
 mh.label.exp_label(
-    exp="<EXPERIMENT>",  # MANDATORY — e.g. "ALEPH", "CMS", "DELPHI"
+    exp="FCC-ee",    # MANDATORY for this repository
     text="",         # e.g. "Preliminary" (leave "" for final)
     loc=0,
-    data=True,       # Always True for open data — control label via llabel
-    llabel="Open Data",  # "Open Data" for data, "Open Simulation" for MC
-    year=None,       # e.g. "1992-1995"
-    lumi=None,       # e.g. 160 (in pb^-1 or fb^-1)
+    data=True,       # Always True — control the left label via llabel
+    llabel="Delphes Simulation",   # or "CLD Simulation" / "Delphes vs CLD"
+    year=None,
+    lumi=None,
     lumi_format="{0}",
-    com=None,        # centre-of-mass energy — NOTE: CMS style prints "TeV",
-                     # so for non-LHC experiments use rlabel instead, e.g.
-                     # rlabel=r"$\sqrt{s} = 91.2$ GeV"
-    rlabel=None,     # Overwrites right side — use for custom annotations
+    com=None,        # NEVER use — CMS style prints TeV
+    rlabel=r"$\sqrt{s} = 240$ GeV, 10.8 ab$^{-1}$",  # set explicitly
     ax=ax,
 )
 

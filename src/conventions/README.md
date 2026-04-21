@@ -1,9 +1,23 @@
 # Physics Conventions
 
 This directory contains accumulated domain knowledge for specific analysis
-techniques. These are **not** part of the methodology specification — the spec
+techniques and for the FCC-ee / Key4hep / EDM4hep experimental context.
+These are **not** part of the methodology specification — the spec
 describes process (phases, reviews, gates), while conventions encode what
 experienced analysts know about how to do specific things correctly.
+
+**Always read `fcc_ee.md` first.** It is the experimental-context document
+for this repository: sample conventions, `fccanalysis run` usage, the
+EDM4hep collection glossary, the Delphes↔CLD collection aliasing shim,
+the FCC-ee plot-label style, and the **dual-chain comparison pattern**.
+Every analysis here is reproduced on both simulation chains (Delphes
+fast sim AND CLD full sim) with a final-result comparison at Phase 4c;
+`fcc_ee.md` gives the chain-portable code pattern and the
+`COMPARISON_dual_sim.md` artifact contract, while
+`methodology/04-staged-validation.md` §4.3 gives the phase-by-phase
+execution protocol. Every analysis reads `fcc_ee.md` at Phase 1 in
+addition to the technique-specific file (`extraction.md`, `unfolding.md`,
+or `search.md`).
 
 ## Relationship to the spec
 

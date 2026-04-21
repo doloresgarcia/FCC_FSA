@@ -22,13 +22,30 @@ See §3a for orchestrator architecture. Phase CLAUDE.md templates (from
 
 ### Analysis Types
 
-- **Search:** Signal/background, SR/CR structure, blinding (§4), limits or
-  significance.
+- **Search:** Signal/background, SR/CR structure, staged validation (§4),
+  limits or significance.
 - **Measurement:** Corrected spectra, event shapes, extracted parameters.
-  No S/B per se. Staged validation replaces blinding (§4).
+  No S/B per se. Staged validation protocol (§4) applies symmetrically.
 
 Where phase descriptions reference search concepts (SR, CR, S/B),
 measurements substitute: fiducial region, sidebands, purity optimization.
+
+**All analyses in this repository run on simulation only** — Delphes
+fast sim and/or CLD/IDEA full sim from the Key4hep stack. There is no
+real data. "Data" in the phase descriptions below means Asimov
+pseudo-data or toy-MC generated from the nominal model; see §4 for the
+full staging protocol and `conventions/fcc_ee.md` for the FCC-ee /
+EDM4hep domain conventions.
+
+**Every analysis is reproduced on both chains.** Dual-chain execution
+— Delphes fast sim AND CLD full sim, with a final-result comparison at
+Phase 4c — is a primary deliverable, not an appendix. See §4.3 for the
+execution protocol. Each phase description below notes what runs per
+chain vs. what is shared. The strategy (Phase 1) and exploration
+(Phase 2) are shared; from Phase 3 onwards artifacts are chain-stamped
+(`SELECTION_delphes.md`, `INFERENCE_EXPECTED_cld.md`, ...); Phase 4c
+additionally produces `COMPARISON_dual_sim.md`; Phase 5 produces a
+single AN with a mandatory dual-chain comparison chapter.
 
 ---
 
@@ -117,10 +134,13 @@ be to try to solve it:
   Check whether the variation is physically motivated or an artifact
   of the evaluation procedure. A 10x-larger-than-published systematic
   is almost always an evaluation problem, not a physics truth.
-- **Data/MC disagreement** → this is a calibration opportunity, not just
-  a "data quality finding." Identify the source, derive a correction,
-  verify it reduces the disagreement. An uncalibrated systematic is
-  always larger than a calibrated one.
+- **Generator-to-generator disagreement** → this is a physics-model
+  opportunity, not just a "sample quality finding." Identify the source
+  (fragmentation, ISR, matrix element), derive a correction or weight
+  where possible, and verify it reduces the disagreement. When comparing
+  Delphes fast sim to CLD full sim on the same generator event sample,
+  differences localise to detector effects and are documented in the
+  dual-sim overlay (§4.3), not folded into a flat systematic.
 
 Accept a limitation ONLY when: (a) you have tried at least one concrete
 approach to solve it, (b) the approach failed for a documented, specific
@@ -261,6 +281,18 @@ method (correction chain, sample merging, region definitions) with no
 visual explanation, plan a diagram. List planned diagrams with their
 target AN sections. These are produced in Phase 5.
 
+- **Dual-chain plan (binding).** The strategy must name the primary
+  chain (default: Delphes winter2023 IDEA) and the secondary chain
+  (default: CLD/IDEA full sim), identify the samples required for each,
+  and commit to running Phase 3 and Phase 4 on both. The dual-chain
+  comparison at Phase 4c (`COMPARISON_dual_sim.md`) is a binding
+  commitment tracked in `COMMITMENTS.md`. If one chain is genuinely
+  unavailable (no generator sample, no reconstruction release, not
+  "hard to produce"), document this as a formal [A] constraint with
+  a named trigger for completion; this is the only acceptable
+  single-chain outcome and it must be approved at the Phase 1 review.
+  See §4.3.
+
 **Artifact:** `STRATEGY.md`. **Review:** 4-bot (§6).
 
 ---
@@ -273,66 +305,63 @@ foundation.
 **The agent must:**
 - Inventory samples (files, trees, branches, events, cross-sections)
 - Validate data quality (pathologies, outliers, unphysical values)
-- Apply standard object definitions (from corpus), verify data/MC agreement
+- Apply standard object definitions (from corpus / `conventions/fcc_ee.md`),
+  run `podio-dump` on one file per process and record the collection
+  list in the experiment log, verify the Delphes-flavoured side-collections
+  (`Muon#0.index`, `Electron#0.index`, `Photon#0.index`) are present
+  when working on Delphes samples, or that the equivalent PandoraPFO
+  filtering is in place for CLD samples.
 - Survey discriminating variables, rank by separation power
-- **Data/MC agreement on candidate variables.** For every variable that
-  may enter a classifier or selection, produce a data/MC comparison and
-  report the chi^2/ndf. This survey is an input to Phase 3's variable
-  quality gate — variables with poor data/MC agreement should be flagged
-  here so Phase 3 can decide to discard or calibrate them before
-  training any MVA.
+- **Generator-level sanity checks on candidate variables.** For every
+  variable that may enter a classifier or selection, compare nominal
+  MC to at least one alternative generator (or a second production) at
+  the particle level and report the chi²/ndf. This survey is an input
+  to Phase 3's variable quality gate — variables with large
+  generator-to-generator spread should be flagged here so Phase 3 can
+  decide to discard or calibrate them before training any MVA.
 - Establish baseline yields after preselection
-- **Published yield cross-check (pre-selected data).** When the data has
-  been pre-selected at ntuple production ("aftercut", "skimmed", or
-  similar), the pre-selection efficiency is an unmeasured correction
-  that will propagate to the cross-section. Characterize it in Phase 2:
-  1. From cited references, obtain the published luminosity and
-     cross-section at each energy point.
-  2. Compute expected event counts: N_exp = L_pub × sigma_pub.
-  3. Compare to observed event counts in the ntuples: N_obs.
-  4. The ratio f_presel = N_obs / N_exp is the pre-selection efficiency.
-  5. Tabulate f_presel per energy point and per year. Flag any
-     energy dependence — if f_presel varies by more than 2% across
-     energy points, it will bias lineshape/shape measurements unless
-     corrected. This is a Phase 4 input, not a curiosity.
-  6. If f_presel cannot be computed (no published luminosity), document
-     this as a limitation and plan for Phase 4.
+- **Cross-section sanity cross-check.** For each process, compute the
+  expected event count at design luminosity:
+  N_exp = L_int × σ_proc × ε_presel.
+  Compare to observed ntuple counts. A factor-of-a-few disagreement
+  usually indicates a wrong cross section in the procDict, a missed
+  generator fraction, or a different preselection at ntuple production
+  than assumed. Fix at Phase 2 — a wrong σ propagates silently into
+  the fitted cross-section at Phase 4 and is invisible to closure tests.
 
-  This cross-check catches two problems early: (a) energy-dependent
-  pre-selection that would distort the lineshape, and (b) mismatched
-  data periods (archived files containing events from unpublished
-  sub-periods for which no luminosity is available).
+**Sample discovery:** `podio-dump <file>.root` → small slice (~1000 events
+via `fccanalysis run --nevents 1000`) → identify the collection schema
+(`ReconstructedParticles` + `Muon#0.index` on Delphes, `PandoraPFOs` on
+CLD) → document in the experiment log.
 
-**Data discovery:** Metadata first → small slice (~1000 events) → identify
-jagged structure → document schema.
+**Simulation-archaeology protocol.** When working with centrally
+produced FCC-ee samples (Winter2023 IDEA, a CLD production you did not
+build, or a third-party local mirror), unexpected properties can
+fundamentally change what is feasible. Phase 2 must systematically
+discover these before Phase 3 begins:
 
-**Data archaeology protocol (archived/open data).** When working with
-archived data that was not produced by the analysis team, unexpected
-properties can fundamentally change what is feasible. Phase 2 must
-systematically discover these before Phase 3 begins:
-
-1. **Check all weight/flag branches for non-triviality.** Print unique
-   values, range, and mean for every branch that could be a weight,
-   flag, or quality indicator. Non-trivial weights (not all 1.0) must
-   be understood and documented — they affect every downstream
-   computation. Example: per-track `weight` ranging 0.08-4.5 discovered
-   in one analysis; ignoring it would bias the measurement.
-2. **Check what processing has been applied.** Compare event counts to
-   published cross-section × luminosity. If counts are significantly
-   lower, the data has been pre-selected at ntuple production level.
-   Determine what was cut (hadronic selection? quality flags? fiducial
-   cuts?) and document the impact on feasibility of planned
-   measurements. Example: one analysis discovered leptonic events were
-   entirely absent from "aftercut" ntuples, making per-channel leptonic
-   measurements impossible.
-3. **Check MC generation parameters.** Verify the generator, tune, beam
-   energy, and process match the data-taking conditions. If MC is limited
-   to a single energy point or year, document the coverage gap and plan
-   for Phase 4 uncertainty treatment.
-4. **Check for truth-level information.** What generator-level quantities
-   are available? What particle-level definition can be supported? Are
-   truth-matching variables present? If truth labels needed for tagging
-   or closure are absent, document alternatives.
+1. **Check all weight branches for non-triviality.** Print unique
+   values, range, and mean for every branch that could be a per-event
+   weight (generator weight, PDF weight, scale variation weight, pileup
+   weight). Non-trivial weights (not all 1.0) must be understood and
+   documented — they affect every downstream histogram.
+2. **Check what preselection, if any, has been applied.** Compare event
+   counts to σ × L_int. If the count is significantly lower, the sample
+   has already been preselected. Inspect the provenance metadata (if
+   podio stores it), ask the production page, or inspect an adjacent
+   README — do not guess.
+3. **Check generator parameters.** Verify generator, tune, beam energy,
+   and process match the physics you think they do. Winter2023 IDEA
+   uses WHIZARD+Pythia8 for most samples and Pythia8-only for others;
+   a mismatch with the strategy's assumed generator is a Phase 1
+   revision trigger.
+4. **Check the collection schema explicitly.** Print the collection
+   names with `podio-dump`. On Delphes, look for `ReconstructedParticles`,
+   `Muon#0.index`, `MCRecoAssociations`. On CLD, look for `PandoraPFOs`
+   (or `TightSelectedPandoraPFOs`), `SiTracks`, `MCRecoAssociations`. If
+   the histmaker code references `Muon#0.index` and the input is CLD,
+   the code will silently return zero muons — catch this at Phase 2,
+   not at Phase 4.
 5. **Strategy revision gate.** If any discovery materially changes the
    feasibility of a planned measurement (e.g., required branches absent,
    truth labels unavailable, dominant weight not understood, leptonic
@@ -350,6 +379,16 @@ systematically discover these before Phase 3 begins:
 
 **PDF build test (independent):** Stub `pixi run build-pdf` to verify
 toolchain. Can run in parallel.
+
+- **Both chains inventoried.** The exploration artifact has a
+  separate sample-inventory subsection per chain (Delphes and CLD),
+  each with its own `podio-dump` output and process × cross-section
+  × event-count table. The Delphes↔CLD collection-name differences
+  (e.g., `ReconstructedParticles`+`Muon#0.index` on Delphes,
+  `PandoraPFOs` on CLD) must be documented so the Phase 3 aliasing
+  shim covers both chains from the start. If one chain's samples are
+  not yet available, mark the inventory as "pending production" with
+  a named trigger — do NOT silently drop it.
 
 **Artifact:** `EXPLORATION.md`. **Review:** Self-review (§6).
 
@@ -426,8 +465,10 @@ the plan; it does not redesign it.
 test in VRs (p > 0.05 or Category A).
 
 **Correction infrastructure (measurements):**
-- Data/MC comparisons for all variables entering the observable, resolved
-  by object category (Category A if missing for unfolded measurements)
+- Nominal-vs-alternative comparisons for all variables entering the
+  observable, resolved by object category: either two generators, two
+  detector simulations (Delphes vs CLD where available), or two
+  reconstruction versions. Category A if missing for unfolded measurements.
 - Response matrix: dimensions, diagonal fraction, condition number, efficiency
 - **Early diagonal fraction check (gate).** Before building the full
   correction chain, compute the response matrix on a small MC subset
@@ -524,7 +565,21 @@ catastrophic closures: chi2/ndf = 0.01 called "good," -287 sigma called
 "known limitation," -12.6 sigma framed as "acceptable." The spec does
 not permit this. A closure test that fails is a method that doesn't work.
 
-**Artifact:** `SELECTION.md`. **Review:** 1-bot (§6).
+**Dual-chain execution (mandatory).** The Phase 3 histmaker must use
+the shared-`build_graph` + aliasing-shim pattern from
+`conventions/fcc_ee.md` so the identical physics graph runs on both
+Delphes and CLD samples. Phase 3 produces two chain-stamped artifacts:
+`SELECTION_delphes.md` and `SELECTION_cld.md` (plus chain-stamped
+output ROOT files and figures in per-chain subdirectories of
+`outputs/`). Both artifacts receive a 1-bot review; approach-comparison,
+closure tests, and method-health checks apply to each chain
+independently. If the secondary chain's samples are not ready in time
+for the primary Phase 3 pass, the secondary-chain artifact may be
+deferred — but the deferral is recorded in `COMMITMENTS.md` with a
+hard trigger, and the dual-chain pass at Phase 4 cannot advance until
+the secondary Phase 3 has been produced and reviewed.
+
+**Artifact:** `SELECTION_<chain>.md` per chain. **Review:** 1-bot (§6) per chain.
 
 ---
 
@@ -690,7 +745,9 @@ Three sub-phases. **Both measurements and searches follow 4a → 4b → 4c.**
   affected uncertainty as a lower bound. This applies to physics
   parameters (signal strength, coupling constants) and nuisance
   parameters alike.
-- For measurements: expected result from MC pseudo-data, never real data.
+- For measurements: expected result from Asimov pseudo-data generated
+  from the nominal MC. There is no real data in this framework — see §4
+  for the MC-only staging protocol.
   See `conventions/extraction.md` for extraction-specific protocol.
 - For measurements: full covariance matrix (stat + per-syst + total) +
   comparison to >=1 theory prediction using full covariance
@@ -805,9 +862,20 @@ Three sub-phases. **Both measurements and searches follow 4a → 4b → 4c.**
   showing the expected measurement with total uncertainty band. If the
   Phase 4a AN would not make a physicist nod along, it is not ready.
 
-**Artifact:** `INFERENCE_EXPECTED.md` + `ANALYSIS_NOTE_4a_v1.md` (complete
-AN with all detail using expected-only results; 4b/4c update numbers,
-Phase 5 polishes prose and typesets).
+**Dual-chain execution (mandatory).** Phase 4a runs on both chains.
+Produce chain-stamped artifacts: `INFERENCE_EXPECTED_delphes.md` and
+`INFERENCE_EXPECTED_cld.md`. The Phase 4a AN may cover both chains in a
+single document (with per-chain result subsections and a short
+"preliminary dual-chain comparison" subsection) or — if context pressure
+requires — two chain-stamped AN versions that are merged at Phase 4c.
+The former is preferred because it keeps the dual-chain story coherent
+from the first AN draft. Systematic completeness is evaluated per chain
+(some sources, e.g., PFA mis-assignment, are CLD-only).
+
+**Artifact:** `INFERENCE_EXPECTED_<chain>.md` per chain +
+`ANALYSIS_NOTE_4a_v1.md` (complete AN with all detail using
+expected-only results for both chains; 4b/4c update numbers, Phase 5
+polishes prose and typesets).
 
 **Number consistency gate (every AN compilation).** Before compiling any
 AN version (4a, 4b, 4c, or 5), the note writer must verify that all
@@ -832,19 +900,34 @@ markdown.
 
 **Review:** 4-bot+bib (§6).
 
-#### Phase 4b: 10% Data Validation
+#### Phase 4b: Toy-MC Coverage Scan
 
-**Goal:** Reality-check with 10% subsample + update AN with 10% results.
+**Goal:** Reality-check the statistical model on toys + update AN with
+toy results. This is the MC-only equivalent of 10% partial unblinding.
 
-- 10% data (fixed seed), MC normalized to 10% luminosity
-- Run full chain, evaluate GoF, NP pulls, impact ranking
-- Compare to Phase 4a expected (overlay, chi2). Discrepancies documented.
-- For extraction: include diagnostics sensitive to data/MC differences
-  (not just the final quantity). See `conventions/extraction.md` check #5.
-- **Update AN:** Update the AN (established in 4a) with 10% data results.
-  Phases 4c/5 update results and finalize.
+- Generate N ≥ 500 Poisson toys from the nominal model (fixed master seed)
+  at the full design luminosity.
+- For each toy: refit, store fitted-parameter value, pull, GoF, NP pulls,
+  and boundary flags.
+- Aggregate: pull mean and width per parameter, fitted-parameter bias,
+  distribution of chi² compared to the Asimov chi² from 4a.
+- Check **coverage**: pull widths must be consistent with 1.0 within toy
+  statistics. Narrow pulls (width < 0.8) or biased pull means (|mean| > 0.2)
+  are Category A — investigate before advancing.
+- NP pulls: for each nuisance parameter, verify the distribution is
+  centred on zero with width close to the prior. A constrained NP (post-fit
+  width significantly smaller than prior) is normal only if a physical
+  sub-distribution genuinely constrains it; otherwise flag for investigation.
+- **Update AN:** Update the AN (established in 4a) with toy-scan results:
+  pull histograms, coverage table, nuisance pull summary, chi² distribution.
+  Phase 4c updates the central value and final covariance.
 
-**Artifact:** `INFERENCE_PARTIAL.md` + `ANALYSIS_NOTE_4b_v1.md`.
+**Dual-chain execution (mandatory).** Phase 4b runs the toy scan on
+both chains. Produce `INFERENCE_TOYS_delphes.md` and
+`INFERENCE_TOYS_cld.md`. Pull-width and bias coverage are checked per
+chain; the 4b AN update includes both chains' toy summaries.
+
+**Artifact:** `INFERENCE_TOYS_<chain>.md` per chain + `ANALYSIS_NOTE_4b_v1.md`.
 
 **Figure reference verification (mandatory before PDF compilation).**
 Before compiling the AN draft to PDF, verify all figure references
@@ -866,23 +949,26 @@ it. The human reviews the PDF, not markdown.
 
 **Review:** 4-bot (§6) → **human gate** (§4.2).
 
-#### Phase 4c: Full Data
+#### Phase 4c: Full-Statistics Expected Result
 
-**Goal:** Final results on full dataset.
+**Goal:** Final expected result at full design luminosity with full
+covariance matrix.
 
-- Full chain, post-fit diagnostics
-- Compare to **both** 10% and expected. Flag >2-sigma disagreement with expected
-  or disagreement with 10% beyond statistical scaling.
+- Full chain on the nominal MC at design luminosity
+- Post-fit diagnostics on the Asimov fit (not toys)
+- Compare to **both** the toy scan distribution and the 4a Asimov.
+  Flag any drift beyond toy statistical scaling.
 - Investigate anomalies (large NP pulls, poor GoF)
-- **Re-evaluate systematics on full data.** The MC-derived systematic
-  budget from Phase 4a is a starting point, not the final answer. For each
-  systematic source that involves a scan or comparison across configurations
-  (e.g., kappa values, binning schemes, alternative methods), re-evaluate
-  on the full data. If the data-evaluated systematic differs from the MC
-  evaluation by more than a factor of 2, the artifact must document the
-  discrepancy and justify which evaluation is used. Transferring the entire
-  systematic budget from MC to data without validation is a form of
-  borrowed flat systematic — the same prohibition applies.
+- **Re-evaluate systematics at full statistics.** The systematic
+  budget assembled in Phase 4a using coarse binning or a subset of the
+  MC is a starting point. For each systematic source that involves a
+  scan or comparison across configurations (kappa values, binning
+  schemes, alternative methods), re-evaluate at full MC statistics.
+  If the full-statistics evaluation differs from the 4a evaluation by
+  more than a factor of 2, the artifact must document the discrepancy
+  and justify which evaluation is used. Transferring a provisional
+  4a systematic budget to 4c without revisit is a form of borrowed
+  flat systematic — the same prohibition applies.
 - **Configuration selection must include GoF.** When multiple analysis
   configurations are evaluated (kappa values, working points, binning
   schemes, fit variants), the primary configuration must satisfy both
@@ -1010,16 +1096,49 @@ per-energy-point cross-sections. These are the single source of truth for
 numbers in the AN — the note writer reads from these files, not from
 prose artifacts.
 
-**Artifact:** `INFERENCE_OBSERVED.md` + `ANALYSIS_NOTE_4c_v1.md`.
+**Dual-chain execution (mandatory).** Phase 4c must run to completion
+on both chains, producing `INFERENCE_FULLSTATS_delphes.md` and
+`INFERENCE_FULLSTATS_cld.md` with full covariance matrices and final
+fitted parameters for each.
+
+**Dual-chain comparison artifact (mandatory).** After both chains'
+fits are complete, the executor produces
+`COMPARISON_dual_sim.md` in the 4c `outputs/` directory. Mandatory
+contents (§4.3.5):
+
+1. Fitted-parameter table: Delphes central value ± uncertainty vs.
+   CLD central value ± uncertainty, difference, and pull (difference
+   divided by combined uncertainty).
+2. Side-by-side systematic budget: per-source relative uncertainty on
+   the fitted parameter for each chain, with a delta column.
+   Sources that switch between dominant and subdominant across
+   chains are flagged.
+3. Covariance matrix comparison (for unfolded / differential
+   measurements): bin-to-bin covariance from each chain and a
+   per-element relative difference or a Frobenius-norm distance with
+   interpretation.
+4. Distribution overlays with ratio panels: observable and every MVA
+   input / correction input, overlaid between chains.
+5. Verdict: chi² or combined-pull summary; physical interpretation of
+   observed differences; whether they are within the assigned
+   detector-simulation systematic or require a Phase 3 regression.
+
+A disagreement larger than the assigned detector-simulation systematic
+is a Phase 3 regression trigger, not an accepted limitation.
+
+**Artifact:** `INFERENCE_FULLSTATS_<chain>.md` per chain +
+`COMPARISON_dual_sim.md` + `ANALYSIS_NOTE_4c_v1.md`.
 
 **AN update is mandatory at 4c.** The AN writing subagent updates the
-AN with full data results (replacing 10% numbers from 4b). **PDF
-compilation is mandatory at 4c** — the AN must be compiled to PDF
-before review, matching the pattern at 4a and 4b (pandoc →
-`postprocess_tex.py` → typesetter → tectonic). Every AN-producing
-phase (4a, 4b, 4c, 5) compiles to PDF.
+AN with full data results for both chains (replacing 10% numbers from
+4b) and adds a "Dual-chain comparison" chapter summarising
+`COMPARISON_dual_sim.md`. **PDF compilation is mandatory at 4c** —
+the AN must be compiled to PDF before review, matching the pattern at
+4a and 4b (pandoc → `postprocess_tex.py` → typesetter → tectonic).
+Every AN-producing phase (4a, 4b, 4c, 5) compiles to PDF.
 
-**Review:** 1-bot (§6).
+**Review:** 1-bot (§6) covering both chains' artifacts and the
+comparison artifact in a single pass.
 
 ---
 
@@ -1190,6 +1309,18 @@ issue (e.g., missing figure, inconsistent number), it flags it for the
 AN writer rather than fixing it.
 
 See `analysis-note.md` for full AN specification.
+
+**Dual-chain comparison chapter (mandatory).** The Phase 5 AN is a
+single document covering both chains, and it must include a dedicated
+"Dual-chain comparison" chapter that inherits the Phase 4c
+`COMPARISON_dual_sim.md` artifact. The chapter covers: the
+fitted-parameter table with pull, the side-by-side systematic budget,
+the covariance comparison, representative distribution overlays, and
+the physics verdict. A Phase 5 AN without this chapter is Category A.
+If one chain was not run (single-chain disclaimer approved at Phase 1,
+§4.3.6), the chapter is replaced by a clearly-labelled disclaimer
+section naming the missing chain, the trigger for completing the
+comparison, and the responsible follow-up.
 
 **Artifact:** `ANALYSIS_NOTE_5_v1.md` + compiled PDF + `results/` directory.
 **Review:** 5-bot (§6).

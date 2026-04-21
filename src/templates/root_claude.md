@@ -24,19 +24,28 @@ list showing all phases with their execution pipeline and review tier.
 Use this exact structure:
 
 ```
-Phase 1: Strategy — executor + 4-bot review
-Phase 2: Exploration — executor + self-review
-Phase 3: Selection — executor + 1-bot review
-Phase 4a: Expected results — executor + note writer + typesetter + 4-bot+bib review
-Phase 4b: 10% data validation — executor + note writer + typesetter + 4-bot+bib review + human gate
-Phase 4c: Full data results — executor + note writer + 1-bot review
+Phase 1: Strategy — executor + 4-bot review (names primary + secondary chain)
+Phase 2: Exploration — executor + self-review (both chains' samples inventoried)
+Phase 3: Selection (Delphes) — executor + 1-bot review
+Phase 3: Selection (CLD)     — executor + 1-bot review
+Phase 4a: Expected (Delphes) — executor + note writer + typesetter + 4-bot+bib review
+Phase 4a: Expected (CLD)     — executor + note writer + typesetter + 4-bot+bib review
+Phase 4b: Toy-MC scan (Delphes) — executor + note writer + typesetter + 4-bot+bib review
+Phase 4b: Toy-MC scan (CLD)     — executor + note writer + typesetter + 4-bot+bib review + human gate
+Phase 4c: Full-stats expected (Delphes) — executor + note writer + 1-bot review
+Phase 4c: Full-stats expected (CLD)     — executor + note writer + 1-bot review
+Phase 4c: Dual-chain comparison — executor (produces COMPARISON_dual_sim.md) + 1-bot review
 Phase 5: Final documentation — executor + note writer + typesetter + 5-bot review
+          (single AN, both chains, mandatory dual-chain comparison chapter)
 ```
 
 Mark each phase complete as it finishes. This gives the human visibility
 into progress and ensures the orchestrator has internalized the review
 requirements for every phase — especially 4b (full review panel, not just
-human gate) and 4c (1-bot review, not unreviewed).
+human gate), 4c (1-bot review, not unreviewed), and dual-chain execution
+(both chains reviewed independently + a comparison artifact). If one
+chain has been approved as genuinely unavailable at Phase 1 (§4.3.6),
+collapse its rows and carry a "Single-chain disclaimer" task to Phase 5.
 
 **All executor subagents start in plan mode.** When spawning an executor,
 instruct it to first produce a plan: what scripts it will write, what figures
@@ -90,24 +99,28 @@ for each phase in [1, 2, 3, 4a, 4b, 4c, 5]:
   4. COMMIT — commit the phase's work.
 
   5. HUMAN GATE (after 4b for both measurements and searches):
-     Present the draft AN and 10% results to the human. Pause until approved.
+     Present the draft AN and toy-MC coverage results to the human.
+     Pause until approved.
 
   6. ADVANCE — proceed to next phase.
 ```
 
 **Phase 4 flow (both measurements and searches):**
 All three sub-phases (4a → 4b → 4c) are required for both analysis types.
-- **4a:** Statistical analysis — systematics, expected results. Executor
-  (stats) → note writer (AN v1 with ALL detail, expected results only) →
-  typesetter (markdown → .tex → improve typesetting → compile PDF).
-  The review panel reads the compiled PDF — a review without a PDF is a
-  process failure. PDF compilation mandatory before review.
-- **4b:** 10% data validation. Compare to expected. Executor (stats) →
-  note writer (update AN numbers to 10% data) → typesetter (recompile
-  .tex + PDF). Human gate reviews the compiled PDF, not markdown.
-- **4c:** Full data. Compare to **both** 10% and expected. Executor
-  (stats) → note writer (update AN with full results). PDF compilation
-  recommended; required if 4c review finds AN text issues.
+- **4a:** Statistical analysis — systematics, expected results on Asimov
+  pseudo-data. Executor (stats) → note writer (AN v1 with ALL detail,
+  Asimov-only results) → typesetter (markdown → .tex → improve typesetting
+  → compile PDF). The review panel reads the compiled PDF — a review
+  without a PDF is a process failure. PDF compilation mandatory before
+  review.
+- **4b:** Toy-MC coverage scan. Generate ≥500 Poisson toys from the
+  nominal model at full luminosity, refit each, produce pull/coverage
+  plots. Executor (stats) → note writer (update AN with toy results)
+  → typesetter (recompile .tex + PDF). Human gate reviews the compiled PDF.
+- **4c:** Full-statistics expected result. Compare to both the toy scan
+  and the 4a Asimov. Executor (stats) → note writer (update AN with
+  final numbers). PDF compilation recommended; required if 4c review
+  finds AN text issues.
 
 **Systematic variation sizing:** Every systematic variation must be
 motivated by a measurement or published uncertainty. "±50% on the
@@ -133,6 +146,16 @@ disk.
 - **Writing ad-hoc prompts for defined agent roles** — read `agents/{role}.md`
   and use its prompt template. Ad-hoc prompts drift from the spec, miss
   important checks (e.g., plot validator red flags), and are not auditable
+- **Running only one simulation chain when both are available** — every
+  analysis is reproduced on both Delphes and CLD and compared at Phase 4c
+  (§4.3). The only acceptable single-chain outcome is a Phase-1-approved
+  constraint [A] with a documented trigger
+- **Skipping reviews on the secondary chain** — the secondary chain is
+  not a review-free side study. Every chain-stamped artifact receives
+  the same review tier as the primary chain
+- **Dropping the dual-chain comparison artifact** — `COMPARISON_dual_sim.md`
+  at 4c and the dual-chain chapter at Phase 5 are binding deliverables
+  tracked in COMMITMENTS.md
 
 **What the orchestrator does NOT do:**
 - Read full scripts or data files (subagents do this)
@@ -199,9 +222,11 @@ Read relevant sections from `methodology/` as needed:
 
 | Topic | File | When |
 |-------|------|------|
+| FCC-ee domain / EDM4hep / FCCAnalyses | `conventions/fcc_ee.md` | Phase 1, Phase 3, Phase 4 |
 | Phase definitions | `methodology/03-phases.md` | Before each phase |
 | Orchestration | `methodology/03a-orchestration.md` | Orchestrator planning |
-| Blinding | `methodology/04-blinding.md` | Phase 4 |
+| Staged validation (MC-only) | `methodology/04-staged-validation.md` | Phase 4 |
+| Dual-chain execution protocol | `methodology/04-staged-validation.md` §4.3 | Phase 1 planning, Phase 3 / 4 / 5 |
 | Artifacts | `methodology/05-artifacts.md` | Writing phase artifacts |
 | Analysis note spec | `methodology/analysis-note.md` | Phase 4b (writing AN), Phase 5 |
 | Review protocol | `methodology/06-review.md` | Spawning reviewers |
@@ -215,18 +240,36 @@ Read relevant sections from `methodology/` as needed:
 
 ## Environment
 
-This analysis has its own pixi environment defined in `pixi.toml`.
-All scripts must run through pixi:
+This analysis has two complementary environments:
 
-```bash
-pixi run py path/to/script.py          # run a script
-pixi run py -c "import uproot; ..."     # quick check
-pixi shell                              # interactive shell with all deps
-```
+1. **Key4hep (from cvmfs).** Required for `fccanalysis run`, `k4run`,
+   `ddsim`, `podio-dump`, and the EDM4hep Python bindings. Source the
+   stack at the top of every session:
+   ```bash
+   source /cvmfs/sw.hsf.org/key4hep/setup.sh
+   ```
+   Do NOT attempt to conda-install FCCAnalyses, podio, or EDM4hep —
+   they ship via cvmfs only. If you need to pin a release, source a
+   dated snapshot instead.
+
+2. **Pixi (local to the analysis).** Provides matplotlib, mplhep, numpy,
+   uproot, hist, pyhf, pandoc for plotting, post-processing, and
+   document compilation. All Python-only post-processing scripts run
+   through pixi:
+   ```bash
+   pixi run py path/to/script.py          # plotting / stats / AN scripts
+   pixi shell                              # interactive shell with all deps
+   ```
+   For pixi tasks that need FCCAnalyses on `PATH`, source the Key4hep
+   stack inside the task string:
+   ```toml
+   [tasks]
+   histmake = "bash -lc 'source /cvmfs/sw.hsf.org/key4hep/setup.sh && fccanalysis run phase3_selection/src/histmaker.py'"
+   ```
 
 **Never use bare `python`, `pip install`, or `conda`.** If you need a
-package, add it to `pixi.toml` and run `pixi install`. Never use system
-calls to install packages.
+pure-Python package, add it to `pixi.toml` and run `pixi install`.
+Never system-install packages.
 
 ---
 
@@ -253,18 +296,22 @@ Non-negotiable. Use these — not alternatives.
 
 | Task | Use | NOT |
 |------|-----|-----|
-| ROOT file I/O | `uproot` | PyROOT, ROOT C++ macros |
-| Array operations | `awkward-array`, `numpy` | pandas (for HEP event data) |
-| Histogramming | `hist`, `boost-histogram` | ROOT TH1, numpy.histogram (for filling) |
+| EDM4hep event loop | `fccanalysis run <file>.py` (RDataFrame, histmaker pattern) | hand-rolled PyROOT loops, coffea NanoEvents |
+| EDM4hep inspection | `podio-dump` | raw `root -l` scripting |
+| Out-of-Key4hep ROOT I/O | `uproot` for post-processing histogram files | PyROOT when `uproot` is sufficient |
+| Array operations (post-RDF) | `awkward-array`, `numpy` | pandas (for HEP event data) |
+| Histogramming (post-RDF) | `hist`, `boost-histogram` | numpy.histogram (for filling) |
 | Plotting | `matplotlib` + `mplhep` | ROOT TCanvas, plotly |
-| Statistical model | `pyhf` (binned), `zfit` (unbinned) | RooFit, RooStats, custom likelihood code |
-| Jet clustering | `fastjet` (Python) | manual clustering |
+| Statistical model | `pyhf` (binned), `zfit` (unbinned), `combine` via CMS-combine | RooFit, RooStats, custom likelihood code |
+| Jet clustering | `fastjet` (Python) via FCCAnalyses helpers, or `fastjet-python` | manual clustering |
 | Logging | `logging` + `rich` | `print()` — never use bare print |
 | Document prep | `pandoc` (>=3.0) + pdflatex | LLM-based markdown→LaTeX conversion |
-| Dependency mgmt | `pixi` | pip, conda |
+| Dependency mgmt | `pixi` (plus `source /cvmfs/sw.hsf.org/key4hep/setup.sh` for FCCAnalyses/Key4hep) | pip, conda, mixing Key4hep into pixi |
 
-**Optional:** `coffea` (`NanoEvents` for schema-driven array access,
-`PackedSelection` for cutflow management) when the event structure benefits.
+**Optional:** `coffea` where it coexists cleanly with the FCCAnalyses
+output ROOT histograms. The preferred pipeline is
+`fccanalysis run` → per-process ROOT files with histograms → `uproot` +
+`hist` for stacking and fitting.
 
 ---
 
@@ -275,13 +322,18 @@ phase begins. No exceptions.
 
 | Phase | Required artifact | Review type |
 |-------|-------------------|-------------|
-| 1 | `phase1_strategy/outputs/STRATEGY.md` | 4-bot |
-| 2 | `phase2_exploration/outputs/EXPLORATION.md` | Self + plot validator |
-| 3 | `phase3_selection/outputs/SELECTION.md` | 1-bot |
-| 4a | `phase4_inference/4a_expected/outputs/INFERENCE_EXPECTED.md` + `ANALYSIS_NOTE_4a_v1.{md,tex,pdf}` | 4-bot+bib |
-| 4b | `phase4_inference/4b_partial/outputs/INFERENCE_PARTIAL.md` + `ANALYSIS_NOTE_4b_v1.{md,tex,pdf}` | 4-bot+bib → human gate |
-| 4c | `phase4_inference/4c_observed/outputs/INFERENCE_OBSERVED.md` + `ANALYSIS_NOTE_4c_v1.{md,tex,pdf}` | 1-bot |
-| 5 | `phase5_documentation/outputs/ANALYSIS_NOTE_5_v{final}.{md,tex,pdf}` | 5-bot (4 + rendering) |
+| 1 | `phase1_strategy/outputs/STRATEGY.md` (names primary + secondary chain) | 4-bot |
+| 2 | `phase2_exploration/outputs/EXPLORATION.md` (both chains' sample inventories) | Self + plot validator |
+| 3 | `phase3_selection/outputs/SELECTION_delphes.md` AND `SELECTION_cld.md` | 1-bot per chain |
+| 4a | `INFERENCE_EXPECTED_delphes.md` AND `INFERENCE_EXPECTED_cld.md` + `ANALYSIS_NOTE_4a_v1.{md,tex,pdf}` | 4-bot+bib |
+| 4b | `INFERENCE_TOYS_delphes.md` AND `INFERENCE_TOYS_cld.md` + `ANALYSIS_NOTE_4b_v1.{md,tex,pdf}` | 4-bot+bib → human gate |
+| 4c | `INFERENCE_FULLSTATS_delphes.md` AND `INFERENCE_FULLSTATS_cld.md` + `COMPARISON_dual_sim.md` + `ANALYSIS_NOTE_4c_v1.{md,tex,pdf}` | 1-bot |
+| 5 | `phase5_documentation/outputs/ANALYSIS_NOTE_5_v{final}.{md,tex,pdf}` with dual-chain comparison chapter | 5-bot (4 + rendering) |
+
+Chain stamping is mandatory from Phase 3 onwards. The only acceptable
+single-chain outcome is a Phase-1-approved constraint per §4.3.6 — in
+that case the missing-chain rows become a "Single-chain disclaimer"
+section in the Phase 5 AN.
 
 **Review before advancing.** After each artifact, spawn a reviewer subagent.
 Self-review is only acceptable for Phase 2 (exploration). All other phases
@@ -309,9 +361,9 @@ The arbiter must not PASS with unresolved A or B items.
 | 1: Strategy | 4-bot (physics + critical + constructive + arbiter) |
 | 2: Exploration | Self-review + plot validator |
 | 3: Processing | 1-bot (critical + plot validator) |
-| 4a: Expected | 4-bot+bib (AN v1 has citations) |
-| 4b: 10% validation | 4-bot+bib (adds BibTeX validator) → human gate |
-| 4c: Full data | 1-bot |
+| 4a: Expected (Asimov) | 4-bot+bib (AN v1 has citations) |
+| 4b: Toy-MC coverage | 4-bot+bib (adds BibTeX validator) → human gate |
+| 4c: Full-stats expected | 1-bot |
 | 5: Documentation | 5-bot (4-bot + rendering + BibTeX validator) |
 
 **Iteration limits:** 4/5-bot: warn at 3, strong warn at 5, hard cap at 10. 1-bot: warn at 2, escalate after 3. All subagents use `model: "opus"`.
@@ -335,7 +387,7 @@ this triggers regression. See `methodology/06-review.md` §6.7 for the full prot
 resume review.
 
 **Concrete triggers (must not be rationalized away):**
-- Data/MC disagreement on observable or MVA inputs
+- Generator-to-generator or Delphes-vs-CLD disagreement on observable or MVA inputs
 - Closure test failure (p < 0.05)
 - Stress test failure without successful remediation (3+ attempts required)
 - Operating point instability
@@ -360,8 +412,9 @@ single regression iteration. See `methodology/06-review.md` §6.5.1.
 ## Human Gate Protocol
 
 After Phase 4b review PASS, present the **compiled PDF** (not markdown)
-to the human along with the unblinding checklist. Do NOT proceed to
-Phase 4c without explicit human approval.
+to the human along with the toy-MC coverage checklist (see
+`methodology/04-staged-validation.md` §4.2). Do NOT proceed to Phase 4c
+without explicit human approval.
 
 The human may respond with:
 - **APPROVE** — proceed to Phase 4c
@@ -426,11 +479,12 @@ See `methodology/11-coding.md` for full coding practices.
 
 See `methodology/appendix-plotting.md` for full plotting standards. Essentials:
 
-- **Style:** `import mplhep as mh; mh.style.use("CMS")` (CMS style is the default mplhep preset — clean, widely used)
-- **Experiment label:** On every figure (mandatory). For open/archived data:
-  - Data: `mh.label.exp_label(exp="<EXPERIMENT>", data=True, llabel="Open Data", rlabel=r"$\sqrt{s} = X$ GeV", loc=0)`
-  - MC: `mh.label.exp_label(exp="<EXPERIMENT>", data=True, llabel="Open Simulation", rlabel=r"$\sqrt{s} = X$ GeV", loc=0)`
-  - On main panel only — never on ratio panels.
+- **Style:** `import mplhep as mh; mh.style.use("CMS")` (CMS style is the default mplhep preset — clean, widely used; experiment branding comes from `exp_label`, not the style).
+- **Experiment label:** On every figure (mandatory). For FCC-ee simulation:
+  - Delphes fast sim: `mh.label.exp_label(exp="FCC-ee", data=True, llabel="Delphes Simulation", rlabel=r"$\sqrt{s} = 240$ GeV, 10.8 ab$^{-1}$", loc=0)`
+  - CLD full sim:     `mh.label.exp_label(exp="FCC-ee", data=True, llabel="CLD Simulation",     rlabel=r"$\sqrt{s} = 240$ GeV, 10.8 ab$^{-1}$", loc=0)`
+  - Dual-sim overlay: `mh.label.exp_label(exp="FCC-ee", data=True, llabel="Delphes vs CLD",     rlabel=r"$\sqrt{s} = 240$ GeV",              loc=0)`
+  - On main panel only — never on ratio panels. Never use the `com=` argument (CMS style prints TeV).
 - **Figure size:** `figsize=(10, 10)` for all single-panel and ratio plots.
 - **No matplotlib grid plots.** Produce individual `(10, 10)` figures and
   compose in the AN with LaTeX subfigures. Exception: ratio plots and

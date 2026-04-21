@@ -2,7 +2,19 @@
 # This is the pixi environment for the analysis. All scripts run through:
 #   pixi run py script.py
 #
-# To add a dependency: add it below, then `pixi install` from this directory.
+# NOTE: this pixi env is ONLY for Python-only post-processing (plotting,
+# mplhep, uproot, stats, pandoc). The FCC-ee analysis toolchain
+# (fccanalysis, k4run, ddsim, podio-dump, EDM4hep Python bindings) lives
+# on cvmfs and is NOT installable via pixi. Source it explicitly in any
+# task that needs it:
+#
+#   source /cvmfs/sw.hsf.org/key4hep/setup.sh
+#
+# Pixi tasks that call `fccanalysis` wrap the source in a bash -lc string
+# (see the histmake example at the bottom of this file).
+#
+# To add a pure-Python dependency: add it below, then `pixi install`
+# from this directory.
 
 [workspace]
 name = "{name}"
@@ -16,6 +28,8 @@ pandoc = ">=3.0"
 pandoc-crossref = ">=0.3"
 
 # --- Core stack (always needed) ---
+# Python-only packages for post-processing (histograms, plots, stats, AN).
+# FCCAnalyses, podio, edm4hep, k4* are NOT here — they come from Key4hep cvmfs.
 [pypi-dependencies]
 uproot = ">=5.0"
 awkward = ">=2.0"
@@ -51,8 +65,16 @@ lint-plots = "python conventions/lint_plots.py ."
 # --- Analysis tasks: add as you write scripts ---
 # Each script gets an independently runnable task.
 # The "all" task chains the full sequence — this is the reproducibility contract.
-# Example:
-#   select = "python phase3_selection/src/apply_selection.py"
-#   unfold = "python phase4_inference/src/unfold.py"
-#   systematics = "python phase4_inference/src/run_systematics.py"
-#   all = "python phase3_selection/src/apply_selection.py && python phase4_inference/src/unfold.py && python phase4_inference/src/run_systematics.py"
+#
+# For tasks that need Key4hep (fccanalysis, k4run, ddsim, podio-dump),
+# wrap the source in a bash -lc string so the cvmfs setup runs in the
+# same subshell as the command:
+#
+#   histmake = "bash -lc 'source /cvmfs/sw.hsf.org/key4hep/setup.sh && fccanalysis run phase3_selection/src/histmaker.py'"
+#
+# For Python-only post-processing tasks (plots, stats, AN), use pixi's
+# python directly:
+#
+#   plots       = "python phase3_selection/src/plots.py"
+#   inference   = "python phase4_inference/src/run_inference.py"
+#   all         = "bash -lc 'source /cvmfs/sw.hsf.org/key4hep/setup.sh && fccanalysis run phase3_selection/src/histmaker.py' && python phase3_selection/src/plots.py && python phase4_inference/src/run_inference.py"

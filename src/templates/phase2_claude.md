@@ -14,6 +14,14 @@ after the plan is set.
 `outputs/EXPLORATION.md` — sample inventory, data quality assessment, key
 variable distributions, variable ranking, and preselection cutflow.
 
+The inventory must have **one subsection per simulation chain**
+(Delphes winter2023 IDEA + CLD/IDEA full sim) — `podio-dump` output,
+process × cross-section × event-count table, and a collection-schema
+comparison flagging the Delphes↔CLD differences that the Phase 3
+aliasing shim must cover. If either chain's samples are not yet
+available, mark it "pending production" with a named trigger — do not
+silently drop it. See `methodology/04-staged-validation.md` §4.3.
+
 ## Methodology references
 
 - Phase requirements: `methodology/03-phases.md` → Phase 2

@@ -34,28 +34,28 @@ parameter, use `unfolding.md` or `extraction.md` instead.
   evidence for discovery. See Cowan et al. (2010) §3.
 - **Signal injection.** Inject signal at 0x, 1x, 2x, and 5x the expected
   cross-section. See Required validation check #2 for pass/fail criteria.
-- **Blinding.** The signal region discriminant distribution in data is not
-  examined until Phase 4b (10% subsample) or 4c (full data). See
-  `methodology/04-blinding.md` for the full protocol.
+- **Staged validation.** All inputs are simulation; Phase 4a uses Asimov
+  pseudo-data on the background-only hypothesis, Phase 4b is a toy-MC
+  coverage scan at full luminosity, Phase 4c is the full-statistics
+  expected result. See `methodology/04-staged-validation.md`.
 
 ---
 
 ## Required systematic sources
 
-The sources below are organized for e+e- collider searches. For pp collider
-searches, replace beam-related sources (ISR, beam energy) with the
-pp-specific equivalents (PDF, pileup) and add luminosity as a normalization
-source.
+The sources below are organized for e⁺e⁻ collider searches at FCC-ee.
+Because all inputs are simulation, there is no data-driven calibration,
+no pile-up, no trigger efficiency from tag-and-probe — the systematic
+programme is dominated by generator-level modelling and beam effects.
 
-**LEP1 vs LEP2 context.** The tables below are most directly applicable to
-LEP2 searches (above the WW threshold, sqrt(s) > 161 GeV). At LEP2,
-4-fermion processes (WW, ZZ, Weν) are the dominant irreducible backgrounds
-and ISR is the dominant beam-related systematic. At LEP1 (Z-pole,
-sqrt(s) ~ 91 GeV), the background landscape is different: hadronic Z
-decays and two-photon processes dominate, and 4-fermion backgrounds are
-negligible. The 4-fermion row and the ISR "dominant" designation are
-LEP2-specific. For Z-pole searches, consult the RAG corpus for
-energy-appropriate background sources and systematics.
+**FCC-ee energy context.** At the Z pole (√s = 91 GeV) hadronic Z decays
+and two-photon processes dominate the background landscape and 4-fermion
+backgrounds are negligible. Above the WW threshold (√s ≥ 161 GeV,
+including 240 GeV and 365 GeV) 4-fermion processes (WW, ZZ, Zγ*) are
+irreducible and ISR is the dominant beam-related systematic. The
+4-fermion row below applies at 240/365 GeV; at 91 GeV it is
+irrelevant. See `conventions/fcc_ee.md` for the full list of typical
+FCC-ee systematic sources.
 
 ### Signal modeling
 

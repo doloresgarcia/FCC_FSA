@@ -44,18 +44,23 @@ library but for tool-level idioms and gotchas.
 - **Do NOT** hack around unwanted label text by patching rcParams or removing
   matplotlib text objects after the fact. The `exp_label` function exposes all
   the controls you need as kwargs. Read `help(mplhep.label.exp_label)`.
-- For ALEPH analyses using CMS style: call
-  `mplhep.label.exp_label(exp='ALEPH', data=True, rlabel=r'$\sqrt{s} = 91.2$ GeV')`
-  to get clean labeling without CMS branding.
+- For FCC-ee analyses in this repository:
+  `mplhep.label.exp_label(exp='FCC-ee', data=True, llabel='Delphes Simulation',`
+  `rlabel=r'$\sqrt{s} = 240$ GeV, 10.8 ab$^{-1}$')`. Swap `llabel` to
+  `'CLD Simulation'` for full sim and `'Delphes vs CLD'` for dual-sim overlays.
 
 **Common pitfalls:**
 - Using experiment-specific functions (e.g., `mplhep.cms.label`) instead of
   the generic `mplhep.label.exp_label`. The generic function works for any
   experiment; experiment-specific functions add unwanted branding.
-- Forgetting `rlabel=''` and getting a default "(13 TeV)" watermark from CMS
-  style. Always set `rlabel` explicitly.
+- Using the `com=` argument at FCC-ee. The CMS stylesheet renders the
+  centre-of-mass energy in TeV; for FCC-ee the value is in GeV. Always
+  set `rlabel` as an explicit string like
+  `r'$\sqrt{s} = 240$ GeV, 10.8 ab$^{-1}$'` and leave `com=None`.
+- Forgetting `rlabel=''` and getting a default "(13 TeV)" watermark from
+  the CMS style. Always set `rlabel` explicitly.
 - When `data=False`, mplhep auto-adds "Simulation" as text. Setting `llabel`
   on top of this causes stacking. Either use `data=False` alone, or set
-  `data=True, llabel="MC Simulation"` to fully control the left side.
+  `data=True, llabel="Delphes Simulation"` to fully control the left side.
 
 **Performance:** No concerns — plotting is never the bottleneck.

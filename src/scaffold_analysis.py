@@ -24,13 +24,18 @@ TEMPLATES = HERE / "templates"
 
 CONVENTIONS_FOR_TYPE = {
     "measurement": (
+        "- `conventions/fcc_ee.md` — **READ FIRST** — FCC-ee / Key4hep / EDM4hep /\n"
+        "  FCCAnalyses / Delphes↔CLD shim / plot style. Mandatory at Phase 1.\n"
         "- `conventions/unfolding.md` — for unfolded measurements\n"
         "- `conventions/extraction.md` — for extraction/counting measurements\n"
         "\n"
-        "The technique selected in Phase 1 determines which file applies.\n"
-        "Read the \"When this applies\" section of each to confirm."
+        "The technique selected in Phase 1 determines which technique file\n"
+        "applies. Read the \"When this applies\" section of each to confirm.\n"
+        "`conventions/fcc_ee.md` is mandatory regardless of technique."
     ),
     "search": (
+        "- `conventions/fcc_ee.md` — **READ FIRST** — FCC-ee / Key4hep / EDM4hep /\n"
+        "  FCCAnalyses / Delphes↔CLD shim / plot style. Mandatory at Phase 1.\n"
         "- `conventions/search.md`"
     ),
 }
@@ -128,12 +133,21 @@ def scaffold(analysis_dir: Path, analysis_type: str):
     config_path = analysis_dir / ".analysis_config"
     if not config_path.exists():
         config_path.write_text(
-            "# The isolation hook allows access to these directories.\n"
-            "# Set data_dir to the path where your input ROOT files live.\n"
-            "# Add extra allow= lines for additional paths (one per line).\n"
+            "# FCC-ee analysis configuration (read by the isolation hook).\n"
+            "#\n"
+            "# For Delphes winter2023 IDEA samples on CERN AFS / lxplus, the\n"
+            "# recommended access is via FCCAnalyses prodTag, which resolves\n"
+            "# to root://eospublic.cern.ch. In that case leave data_dir= empty\n"
+            "# and set prodTag=\"FCCee/winter2023/IDEA/\" in the histmaker script.\n"
+            "# The hook still needs an allow= line for the EOS redirector.\n"
+            "#\n"
+            "# For locally produced CLD full-sim REC files, set data_dir= to\n"
+            "# the directory containing the *_REC.edm4hep.root files and add\n"
+            "# allow= lines for any sibling paths (stdhep inputs, geometry).\n"
             "data_dir=\n"
-            "# allow=/path/to/mc/samples\n"
-            "# allow=/path/to/calibration\n"
+            "# allow=/cvmfs/sw.hsf.org/key4hep\n"
+            "# allow=/eos/experiment/fcc/ee/generation/DelphesEvents\n"
+            "# allow=/path/to/your/local/CLD/production\n"
         )
         print(f"  wrote {config_path}")
 

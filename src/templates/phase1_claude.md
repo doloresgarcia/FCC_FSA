@@ -1,8 +1,12 @@
 # Phase 1: Strategy
 
 > Read `methodology/03-phases.md` → "Phase 1" for full requirements.
+> Read `conventions/fcc_ee.md` for the FCC-ee / Key4hep / EDM4hep domain.
 
-You are developing the analysis strategy for a **{{analysis_type}}** analysis.
+You are developing the analysis strategy for a **{{analysis_type}}**
+analysis at FCC-ee. All inputs are simulation (Delphes fast sim and/or
+CLD/IDEA full sim). No real data — see `methodology/04-staged-validation.md`
+for the MC-only staging protocol.
 
 **Start in plan mode.** Before writing any code or prose, produce a plan:
 what literature you will query, what samples you expect, what the artifact
@@ -19,26 +23,44 @@ inventory, selection approach, systematic plan, and technique selection.
 - Review protocol: `methodology/06-review.md` → §6.2 (4-bot), §6.4
 - Artifacts: `methodology/05-artifacts.md`
 
-## RAG queries (mandatory)
+## Literature queries (mandatory)
 
-Before writing the strategy, query the experiment corpus (via MCP tools):
-1. `search_lep_corpus`: prior measurements of the same or similar observables
-2. `search_lep_corpus`: standard systematic sources for this analysis technique
-3. `compare_measurements`: cross-experiment results if applicable
-4. `get_paper`: drill into each reference analysis identified
+Before writing the strategy, query for:
+1. Prior FCC-ee projection studies on the same or similar observable
+   (`fcc-physics-events`, arXiv, the FCC feasibility study report)
+2. Legacy LEP measurements of the same observable where applicable
+   (ALEPH/DELPHI/L3/OPAL) — these set the current world-average
+3. Published systematic programmes used by reference analyses in
+   FCCPhysics (<https://github.com/jeyserma/FCCPhysics/tree/main/analyses>)
+   or FCCAnalyses examples
+4. Theory predictions / MC generator benchmarks for the observable
+   (Pythia8, Whizard, KKMCee, Sherpa)
 
-Cite all retrieved sources in the artifact (paper ID + section).
+Cite all retrieved sources in the artifact (paper ID / arXiv / URL +
+section).
 
 ## Required deliverables
 
 - Physics motivation and observable definition
-- Sample inventory (data + MC)
+- Sample inventory (data + MC) — **both chains**: Delphes winter2023
+  IDEA samples (primary by default) AND CLD/IDEA full-sim samples
+  (secondary by default). If either chain's samples are not yet
+  available, name the trigger for production and commit to folding
+  the second chain in via a scheduled regression (§4.3.4).
 - Selection approach with justification (see "≥2 approaches" below)
-- Systematic uncertainty plan
+- Systematic uncertainty plan — per chain, because some sources
+  (e.g., PFA mis-assignment) are CLD-only while Delphes parameterisation
+  changes are Delphes-only.
 - Literature review from RAG corpus
 - **Technique selection** — determine the analysis technique (unfolding,
   template fit, etc.) and justify the choice. This determines which
   technique-specific requirements apply in later phases.
+- **Dual-chain plan (binding)** — name the primary and secondary
+  chain, commit to running Phase 3 and Phase 4 on both, and commit to
+  producing `COMPARISON_dual_sim.md` at Phase 4c and the dual-chain
+  comparison chapter in the Phase 5 AN. This is recorded in
+  `COMMITMENTS.md` and tracked by the orchestrator. See
+  `methodology/04-staged-validation.md` §4.3.
 
 ## Applicable conventions
 
@@ -51,9 +73,10 @@ Read these before writing the systematic plan.
 These are the critical actionable items for Phase 1. See
 `methodology/03-phases.md` → Phase 1 for full details.
 
-- **Corpus queries are mandatory.** Query the experiment corpus before
-  writing anything — prior measurements, standard systematics, reference
-  analyses. Cite all retrieved sources.
+- **Literature queries are mandatory.** Query for prior FCC-ee
+  projections, legacy LEP measurements, reference FCCPhysics analyses,
+  and theory predictions before writing anything. Cite all retrieved
+  sources.
 - **Enumerate backgrounds.** Classify each as irreducible, reducible, or
   instrumental. Estimate relative importance (order of magnitude is fine).
 - **Define discriminating variables.** Identify the variable(s) for final
@@ -105,6 +128,12 @@ Before submitting for review, verify:
 - [ ] Constraint [A], limitation [L], and decision [D] labels defined
 - [ ] For measurements: flagship figures (~6) identified, correction
       strategy defined, theory comparison independence verified
+- [ ] **Dual-chain plan (§4.3):** primary chain named, secondary chain
+      named, samples for each inventoried (or trigger for production
+      documented), binding commitment to `COMPARISON_dual_sim.md` at 4c
+      and dual-chain chapter at Phase 5 recorded in COMMITMENTS.md.
+      Single-chain outcome requires an explicit [A] constraint with a
+      named trigger.
 
 **Your reviewer will check** (§6.4): Backgrounds complete? Systematic
 plan covers conventions? Reference analyses tabulated? >=2 qualitatively
